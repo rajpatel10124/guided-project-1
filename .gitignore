@@ -1,0 +1,26 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.env
+node_modules/
+*.log
+
+# Exclude user submissions and PDFs
+static/uploads/
+instance/
+*.pdf
+/temp_data/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Security
+*.pem
+.env
+
+# OS files
+.DS_Store
