@@ -43,9 +43,9 @@ resource "aws_instance" "app_server" {
   # This script runs on the FIRST BOOT of the instance
   user_data = <<-EOF
               #!/bin/bash
-              # 1. Install Docker & Docker Compose
+              # 1. Install Docker & Git
               apt-get update -y
-              apt-get install -y docker.io docker-compose-v2 git
+              apt-get install -y docker.io git
 
               # 2. Start Docker service
               systemctl start docker
@@ -56,12 +56,9 @@ resource "aws_instance" "app_server" {
               git clone https://github.com/rajpatel10124/guided-project-1.git
               cd guided-project-1
 
-              # 4. Set up basic environment (User should rotate these in production!)
-              echo "POSTGRES_PASSWORD=scholaris_secure_pw_2024" > .env
-              echo "SECRET_KEY=$(openssl rand -hex 24)" >> .env
-
-              # 5. Build and Run with Docker Compose
-              # We use --build to ensure the latest app.py fixes are included
-              docker compose up -d --build
+              # 4. Build and Run the Docker container
+              # Mapping port 80 to 5000 exactly as it was working before
+              docker build -t scholaris-app .
+              docker run -d --name scholaris-container -p 80:5000 scholaris-app
               EOF
 }

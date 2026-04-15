@@ -223,49 +223,16 @@ OTP_MAX_ATTEMPTS = 3     # brute-force protection
 # ── EXTENSIONS ────────────────────────────────────────────────────────────────
 db.init_app(app)
 
-# --- GLOBAL STARTUP INITIALIZATION ---
-def initialize_app():
-    with app.app_context():
-        # 1. Create tables (works for both SQLite and PostgreSQL)
-        try:
-            db.create_all()
-            print("[DB] Tables verified/created.")
-        except Exception as e:
-            print(f"[DB] Error creating tables: {e}")
-
-        # 2. Self-healing DB Sync (Direct-Access for PostgreSQL)
-        if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql'):
-            import psycopg2
-            try:
-                raw_conn = psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI'])
-                raw_conn.autocommit = True
-                with raw_conn.cursor() as cur:
-                    try:
-                        cur.execute('ALTER TABLE "user" ALTER COLUMN password TYPE VARCHAR(255)')
-                    except Exception: pass
-                    for col, dtype in [('processed_count','INT'),('status','VARCHAR(20)'),('accepted','INT'),('rejected','INT'),('manual_review','INT'),('elapsed_sec','FLOAT')]:
-                        try:
-                            cur.execute(f"ALTER TABLE bulk_check_run ADD COLUMN IF NOT EXISTS {col} {dtype}")
-                        except Exception: pass
-                raw_conn.close()
-                print("[DB] Global Sync (PostgreSQL) Complete.")
-            except Exception as e:
-                print(f"[DB] Global Sync Error: {e}")
-
-        # 3. Core dependencies & engines
+# --- DB INITIALIZATION ---
+# This ensures tables are created even when running via Gunicorn
+with app.app_context():
+    try:
+        db.create_all()
         check_dependencies()
-        
-        # 4. Sync Vector Engine (Threaded to avoid blocking startup)
-        try:
-            threading.Thread(target=sync_vector_engine, daemon=True).start()
-        except Exception as e:
-            print(f"[WARN] Could not start vector sync: {e}")
-
-        # 5. Model Warmup (Threaded)
-        try:
-            threading.Thread(target=logic.warmup_models, daemon=True).start()
-        except Exception as e:
-            print(f"[WARN] Could not start model warmup: {e}")
+        # Warmup models in background
+        threading.Thread(target=logic.warmup_models, daemon=True).start()
+    except Exception as e:
+        print(f"[DB] Startup error: {e}")
 
 bcrypt = Bcrypt(app)
 
