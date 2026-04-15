@@ -61,8 +61,7 @@ resource "aws_instance" "app_server" {
               echo "SECRET_KEY=$(openssl rand -hex 24)" >> .env
 
               # 5. Build and Run with Docker Compose
-              # This maps port 80 to 5000 via docker-compose config if we update it, 
-              # or we can keep the port mapping in docker-compose.yml
-              docker compose up -d
+              # We use --build to ensure the latest app.py fixes are included
+              docker compose up -d --build
               EOF
 }
