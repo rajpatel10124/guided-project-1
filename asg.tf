@@ -37,7 +37,7 @@ resource "aws_lb_listener" "http" {
 }
 
 resource "aws_launch_template" "lt" {
-  name_prefix   = "scholaris-tpl-"
+  name_prefix   = "scholaris-lt-v2-"
   image_id      = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
   key_name      = "terra"
