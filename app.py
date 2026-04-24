@@ -598,21 +598,29 @@ def run_bulk_check_task(app, run_id, temp_dir, threshold):
 # =============================================================================
 # Ensure database tables exist (Runs on startup under Gunicorn/Eventlet)
 with app.app_context():
-    try:
-        # If using Postgres, attempt to grant schema permissions first
-        if "postgresql" in app.config['SQLALCHEMY_DATABASE_URI']:
-            try:
-                from sqlalchemy import text
-                db.session.execute(text("GRANT ALL ON SCHEMA public TO public"))
-                db.session.execute(text("GRANT ALL ON SCHEMA public TO scholaris_admin"))
-                db.session.commit()
-            except Exception as e:
-                print(f"[SCHOLARIS] Schema permission grant skipped/failed: {e}")
+    max_retries = 10
+    retry_delay = 5
+    for i in range(max_retries):
+        try:
+            # If using Postgres, attempt to grant schema permissions first
+            if "postgresql" in app.config['SQLALCHEMY_DATABASE_URI']:
+                try:
+                    from sqlalchemy import text
+                    db.session.execute(text("GRANT ALL ON SCHEMA public TO public"))
+                    db.session.execute(text("GRANT ALL ON SCHEMA public TO scholaris_admin"))
+                    db.session.commit()
+                except Exception:
+                    pass
 
-        db.create_all()
-        print("[SCHOLARIS] Database schema verified/created.")
-    except Exception as e:
-        print(f"[SCHOLARIS] Database connection failed: {e}")
+            db.create_all()
+            print("[SCHOLARIS] Database schema verified/created.")
+            break
+        except Exception as e:
+            if i < max_retries - 1:
+                print(f"[SCHOLARIS] DB connection retry {i+1}/{max_retries} due to: {e}")
+                time.sleep(retry_delay)
+            else:
+                print(f"[SCHOLARIS] CRITICAL: DB connection failed after {max_retries} retries: {e}")
 
 if __name__ == '__main__':
     with app.app_context():
