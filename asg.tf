@@ -111,6 +111,17 @@ resource "aws_autoscaling_group" "asg" {
     id      = aws_launch_template.lt.id
     version = "$Latest"
   }
+  tag {
+    key                 = "Name"
+    value               = "scholaris-app-instance"
+    propagate_at_launch = true
+  }
+  instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 0
+    }
+  }
 }
 
 output "ALB_URL" { value = "http://${aws_lb.alb.dns_name}" }
