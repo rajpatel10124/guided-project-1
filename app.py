@@ -599,6 +599,16 @@ def run_bulk_check_task(app, run_id, temp_dir, threshold):
 # Ensure database tables exist (Runs on startup under Gunicorn/Eventlet)
 with app.app_context():
     try:
+        # If using Postgres, attempt to grant schema permissions first
+        if "postgresql" in app.config['SQLALCHEMY_DATABASE_URI']:
+            try:
+                from sqlalchemy import text
+                db.session.execute(text("GRANT ALL ON SCHEMA public TO public"))
+                db.session.execute(text("GRANT ALL ON SCHEMA public TO scholaris_admin"))
+                db.session.commit()
+            except Exception as e:
+                print(f"[SCHOLARIS] Schema permission grant skipped/failed: {e}")
+
         db.create_all()
         print("[SCHOLARIS] Database schema verified/created.")
     except Exception as e:
