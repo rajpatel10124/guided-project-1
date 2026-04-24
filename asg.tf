@@ -61,9 +61,12 @@ resource "aws_launch_template" "lt" {
               usermod -aG docker ubuntu
 
               cd /home/ubuntu
-              # Retry clone if network is flaky
-              for i in {1..5}; do git clone https://github.com/rajpatel10124/guided-project-1.git && break || sleep 5; done
+              # Force latest code: Clone if missing, Pull if exists
+              if [ ! -d "guided-project-1" ]; then
+                for i in {1..5}; do git clone https://github.com/rajpatel10124/guided-project-1.git && break || sleep 5; done
+              fi
               cd guided-project-1
+              git pull origin main
               
               mkdir -p static/uploads
               # Wait for EFS mount target to be ready
