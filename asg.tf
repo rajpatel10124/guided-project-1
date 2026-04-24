@@ -88,7 +88,7 @@ resource "aws_launch_template" "lt" {
                 -e MAIL_SERVER="smtp.gmail.com" \
                 -e MAIL_PORT=587 \
                 --log-driver=awslogs \
-                --log-opt awslogs-group=${aws_cloudwatch_log_group.scholaris_logs.name} \
+                --log-opt awslogs-group=/aws/ec2/scholaris-app \
                 --log-opt awslogs-region=us-east-1 \
                 scholaris-app
               EOF
@@ -108,8 +108,3 @@ resource "aws_autoscaling_group" "asg" {
 }
 
 output "ALB_URL" { value = "http://${aws_lb.alb.dns_name}" }
-
-resource "aws_cloudwatch_log_group" "scholaris_logs" {
-  name              = "/aws/ec2/scholaris-app"
-  retention_in_days = 7
-}
