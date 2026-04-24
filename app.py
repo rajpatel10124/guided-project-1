@@ -606,13 +606,48 @@ with app.app_context():
             if "postgresql" in app.config['SQLALCHEMY_DATABASE_URI']:
                 try:
                     from sqlalchemy import text
-                    db.session.execute(text("GRANT ALL ON SCHEMA public TO public"))
                     db.session.execute(text("GRANT ALL ON SCHEMA public TO scholaris_admin"))
                     db.session.commit()
                 except Exception:
                     pass
 
             db.create_all()
+            
+            # RAW SQL FALLBACK: If create_all is silent but fails, force it
+            if "postgresql" in app.config['SQLALCHEMY_DATABASE_URI']:
+                from sqlalchemy import text
+                db.session.execute(text("""
+                    CREATE TABLE IF NOT EXISTS bulk_check_run (
+                        id SERIAL PRIMARY KEY,
+                        title VARCHAR(255),
+                        total_files INTEGER,
+                        processed_count INTEGER,
+                        status VARCHAR(50),
+                        threshold INTEGER,
+                        accepted INTEGER,
+                        rejected INTEGER,
+                        manual_review INTEGER,
+                        elapsed_sec FLOAT,
+                        created_at TIMESTAMP WITHOUT TIME ZONE
+                    );
+                    CREATE TABLE IF NOT EXISTS bulk_check_result (
+                        id SERIAL PRIMARY KEY,
+                        run_id INTEGER REFERENCES bulk_check_run(id) ON DELETE CASCADE,
+                        filename VARCHAR(255),
+                        verdict VARCHAR(50),
+                        reason VARCHAR(255),
+                        peer_score FLOAT,
+                        external_score FLOAT,
+                        ocr_confidence FLOAT,
+                        is_digital BOOLEAN,
+                        analysis_text TEXT,
+                        peer_details TEXT,
+                        sentence_map TEXT,
+                        created_at TIMESTAMP WITHOUT TIME ZONE
+                    );
+                """))
+                db.session.commit()
+
             print("[SCHOLARIS] Database schema verified/created.")
             break
         except Exception as e:
