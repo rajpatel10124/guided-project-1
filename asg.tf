@@ -47,14 +47,21 @@ resource "aws_launch_template" "lt" {
   block_device_mappings {
     device_name = "/dev/sda1"
     ebs {
-      volume_size = 30
-      volume_type = "gp3"
+      volume_size = 25 # Still Free Tier (limit is 30GB)
     }
   }
 
   user_data = base64encode(<<-EOF
               #!/bin/bash
               apt-get update -y
+              
+              # CREATE SWAP (Fixes OOM on Free Tier)
+              fallocate -l 4G /swapfile
+              chmod 600 /swapfile
+              mkswap /swapfile
+              swapon /swapfile
+              echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
               apt-get install -y nfs-common docker.io git
               systemctl start docker
               systemctl enable docker
